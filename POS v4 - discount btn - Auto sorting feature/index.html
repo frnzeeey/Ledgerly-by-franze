@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ledgerly by Franze - POS</title>
+  <link rel="stylesheet" href="style/main.css" />
+  <script>
+    if (localStorage.getItem('ledgerly-theme') === 'dark') {
+      document.documentElement.dataset.theme = 'dark';
+    }
+  </script>
+</head>
+<body>
+
+  <div class="app">
+    <header>
+      <div class="brand">
+        <div class="logo">LF</div>
+        <div>
+          <h1>Ledgerly by FranZe</h1>
+          <div class="muted">Lorem Ipsum</div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button id="themeToggle" class="theme-toggle" type="button" aria-label="Switch to dark mode" aria-pressed="false">
+          <span class="theme-icon" aria-hidden="true">☾</span>
+          <span class="theme-label">Dark mode</span>
+        </button>
+        <nav class="tabs" aria-label="Main tabs">
+        <button class="tab active" data-tab="pos">POS</button>
+        <button class="tab" data-tab="products">Products</button>
+        <button class="tab" data-tab="history">Sales History</button>
+        <button class="tab" data-tab="reports">Reports</button>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <!-- LEFT: POS / PRODUCTS / HISTORY -->
+      <section class="panel left-grid">
+        <!-- POS -->
+        <div id="tab-pos" class="content-section active">
+          <div class="top-row">
+            <input id="searchInput" type="text" placeholder="Search products..." />
+            <div class="top-actions">
+              <button id="loadDemoBtn" class="btn-muted">Load Demo</button>
+              <button id="clearCartBtn" class="btn-muted">Clear Cart</button>
+            </div>
+          </div>
+
+          <div id="productGrid" class="product-grid" aria-live="polite"></div>
+        </div>
+
+        <!-- PRODUCTS -->
+        <div id="tab-products" class="content-section">
+          <div class="product-manager">
+            <div class="pm-list-wrap">
+              <h3>Products</h3>
+              <div id="pmList" class="pm-list"></div>
+            </div>
+
+            <div class="pm-editor">
+              <h3>Add / Edit Product</h3>
+              <div class="form-grid">
+                <input id="pName" type="text" placeholder="Product name" />
+                <input id="pPrice" type="number" placeholder="Price (PHP)" step="0.01" />
+                <input id="pStock" type="number" placeholder="Stock qty" />
+                <input id="pThreshold" type="number" placeholder="Low-stock threshold" min="0" value="5" />
+                <input id="pSku" type="text" placeholder="SKU (optional)" />
+                <input id="pBarcode" type="text" placeholder="Barcode (optional)" />
+                <!-- NEW 🟠 Unit Type -->
+                <select id="pUnitType">
+                  <option value="piece">Per Piece</option>
+                  <option value="kilo">Per Kilo</option>
+                  <option value="sack">Per Sack</option>
+                </select>
+                <button id="saveProductBtn" class="btn">Save Product</button>
+                <button id="importSampleBtn" class="btn-muted">Load Sample Items</button>
+              </div>
+              <div class="inventory-log-wrap">
+                <h3>Stock movement</h3>
+                <div id="inventoryLog" class="inventory-log muted"></div>
+              </div>
+              <div class="store-settings">
+                <h3>Store settings</h3>
+                <div class="form-grid">
+                  <input id="storeNameInput" type="text" placeholder="Store name" />
+                  <input id="storeAddressInput" type="text" placeholder="Store address" />
+                  <input id="defaultTaxInput" type="number" min="0" max="100" step="0.01" placeholder="Default tax %" />
+                  <button id="saveSettingsBtn" class="btn-muted">Save Settings</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- HISTORY -->
+        <div id="tab-history" class="content-section">
+          <div class="history-top">
+            <h3>Sales History</h3>
+            <div class="history-actions">
+              <button id="exportSalesBtn" class="btn-muted">Download PDF</button>
+              <button id="clearSalesBtn" class="btn danger">Clear All</button>
+            </div>
+          </div>
+
+          <div class="muted">Today's total: <strong id="todayTotal">₱0.00</strong></div>
+          <div id="historyList" class="history-list"></div>
+        </div>
+
+        <!-- REPORTS -->
+        <div id="tab-reports" class="content-section">
+          <div class="history-top">
+            <h3>Reports</h3>
+            <div class="history-actions">
+              <button id="exportReportsBtn" class="btn">Export CSV</button>
+              <button id="backupDataBtn" class="btn-muted">Backup Data</button>
+              <button id="restoreDataBtn" class="btn-muted">Restore Data</button>
+              <input id="restoreDataInput" type="file" accept="application/json" hidden />
+            </div>
+          </div>
+          <div id="reportSummary" class="report-grid"></div>
+          <div id="reportDetails" class="report-details"></div>
+        </div>
+      </section>
+
+      <!-- RIGHT: CART & QUICK CONTROLS -->
+      <aside class="panel side-panel">
+        <div class="cart">
+          <h3>Cart <span id="cartCount" class="muted">(0 items)</span></h3>
+          <div id="cartItems" class="items"></div>
+
+          <div class="summary">
+            <div class="row"><div>Subtotal</div><div id="subtotal">₱0.00</div></div>
+            <div class="row"><div>Tax (<input id="taxRate" type="number" value="12" style="width:58px;" />%)</div><div id="taxAmount">₱0.00</div></div>
+            <div class="row"><div>Discount</div><div id="discountInfo" class="muted">—</div></div>
+            <div class="row"><div class="large-total">Total</div><div class="large-total" id="totalAmount">₱0.00</div></div>
+
+            <div class="payment-row">
+              <input id="customerName" type="text" placeholder="Customer name (optional)" />
+              <input id="saleNotes" type="text" placeholder="Transaction note (optional)" />
+              <select id="paymentMethod" aria-label="Payment method">
+                <option value="cash">Cash</option>
+                <option value="card">Card</option>
+                <option value="gcash">GCash</option>
+                <option value="bank">Bank transfer</option>
+              </select>
+              <input id="paymentReference" type="text" placeholder="Reference number (for card/GCash/bank)" />
+              <input id="cashInput" type="number" placeholder="Cash received" step="0.01" />
+              <div class="pay-buttons">
+                <button id="completeSaleBtn" class="btn">Complete Sale</button>
+                <button id="discountBtn" class="btn-muted">Discount</button>
+                <button id="clearDiscountBtn" class="btn-muted">Clear discount</button>
+              </div>
+            </div>
+
+            <div style="margin-top:8px" class="muted">Change: <strong id="changeAmt">₱0.00</strong></div>
+
+            <div style="margin-top:12px;display:flex;gap:8px;">
+              <button id="printReceiptBtn" class="btn-muted">Print Receipt</button>
+              <button id="openReceiptBtn" class="btn-muted">Open Receipt</button>
+              <button id="resetAllBtn" class="btn danger" style="margin-left:auto">Reset All</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="small">© Ledgerly by FranZe</footer>
+  </div>
+
+  <!-- Receipt preview (hidden until used) -->
+  <div id="receipt-print" style="display:none;max-width:360px;padding:18px;background:white;color:#111;border-radius:8px;margin:12px auto;">
+    <div style="text-align:center;margin-bottom:8px"><strong>Ledgerly</strong><div class="muted">Lorem Ipsum</div></div>
+    <div id="receiptContent"></div>
+    <div style="margin-top:8px;text-align:center" class="muted">*** Thank you for your purchase ***</div>
+  </div>
+
+  <!-- Discount modals -->
+  <div id="discountModal" class="modal" aria-hidden="true">
+    <div class="modal-content">
+      <button class="modal-close" id="closeDiscountModal">&times;</button>
+      <h3>Choose Discount Option</h3>
+      <p class="muted">Pick a discount to apply to current sale</p>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button id="lawDiscountBtn" class="btn">Apply PH Law 20%</button>
+        <button id="ownerDiscountOpenBtn" class="btn-muted">Owner's Discount</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="ownerDiscountModal" class="modal" aria-hidden="true">
+    <div class="modal-content">
+      <button class="modal-close" id="closeOwnerModal">&times;</button>
+      <h3>Owner's Discount</h3>
+      <p class="muted">Enter discount amount in PHP (fixed)</p>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <input id="ownerDiscountInput" type="number" placeholder="₱0.00" step="0.01" />
+        <button id="applyOwnerDiscountBtn" class="btn">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- libs + script -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="script/main.js" defer></script>
+</body>
+</html>
